@@ -5,12 +5,16 @@ import { ArrowLeft, Download } from 'lucide-react';
 // @ts-ignore;
 import { Button, Input, Slider, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from '@/components/ui';
 
+// @ts-ignore;
+import { wxUtils } from '@/lib/wx-utils';
 export default function EditPage(props) {
   const {
     $w,
     style
   } = props;
-  const templateId = $w.page.dataset.params?.templateId || '1';
+
+  // 从URL参数获取templateId
+  const templateId = typeof wx !== 'undefined' ? wx.getCurrentPages().pop().options.templateId : $w.page.dataset.params?.templateId || '1';
   const [textContent, setTextContent] = useState('张');
   const [fontSize, setFontSize] = useState(50);
   const [fontColor, setFontColor] = useState('#000000');
@@ -31,20 +35,60 @@ export default function EditPage(props) {
     label: '仿宋'
   }];
   const handleBack = () => {
-    $w.utils.navigateBack();
+    if (typeof wx !== 'undefined' && wx.navigateBack) {
+      wx.navigateBack();
+    } else {
+      $w.utils.navigateBack();
+    }
   };
   const handleSave = () => {
     if (textContent.length < minLength || textContent.length > maxLength) {
-      alert(`文字长度不符合要求：${textContent} (${minLength}-${maxLength}字)`);
+      wxUtils.showToast({
+        title: `文字长度不符合要求：${textContent} (${minLength}-${maxLength}字)`,
+        icon: 'none'
+      });
       return;
     }
-    alert('头像已保存到相册！');
+
+    // 微信小程序保存到相册
+    if (typeof wx !== 'undefined' && wx.canvasToTempFilePath) {
+      const query = wx.createSelectorQuery();
+      query.select('#preview-canvas').fields({
+        node: true,
+        size: true
+      }).exec(res => {
+        const canvas = res[0].node;
+        wx.canvasToTempFilePath({
+          canvas,
+          success: res => {
+            wx.saveImageToPhotosAlbum({
+              filePath: res.tempFilePath,
+              success: () => {
+                wxUtils.showToast({
+                  title: '头像已保存到相册',
+                  icon: 'success'
+                });
+              },
+              fail: () => {
+                wxUtils.showToast({
+                  title: '保存失败，请重试',
+                  icon: 'error'
+                });
+              }
+            });
+          }
+        });
+      });
+    } else {
+      wxUtils.showToast({
+        title: '头像已保存',
+        icon: 'success'
+      });
+    }
   };
 
-  // 根据模板ID自动选择字体（模拟逻辑）
+  // 根据模板ID自动选择字体
   useEffect(() => {
-    // 这里可以根据模板ID从后端获取对应的字体设置
-    // 暂时使用默认楷体
     setFontFamily('kaiti');
   }, [templateId]);
   return <div style={style} className="min-h-screen bg-gray-50">
@@ -67,8 +111,8 @@ export default function EditPage(props) {
           <div className="relative bg-gradient-to-br from-orange-100 to-orange-200" style={{
           aspectRatio: '1'
         }}>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="font-bold" style={{
+            <div className="absolute inset-0 flex items-center justify-center">
+              <span className="font-bold" style={{
               fontSize: `${fontSize}px`,
               color: fontColor,
               fontFamily: fontFamily,
@@ -77,10 +121,14 @@ export default function EditPage(props) {
               position: 'absolute',
               transform: 'translate(-50%, -50%)'
             }}>
-                  {textContent}
-                </span>
-              </div>
+                {textContent}
+              </span>
             </div>
+            {/* 微信小程序 canvas */}
+            {typeof wx !== 'undefined' && <canvas id="preview-canvas" className="absolute inset-0 w-full h-full" style={{
+            display: 'none'
+          }} />}
+          </div>
         </div>
       </div>
 
@@ -89,7 +137,9 @@ export default function EditPage(props) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">姓氏</label>
           <Input type="text" value={textContent} onChange={e => setTextContent(e.target.value.slice(0, maxLength))} maxLength={maxLength} className="text-center text-lg" />
-          <p className="text-xs text-gray-500 mt-1">{textContent.length}/{maxLength}字</p>
+          <p className="text-xs text-gray-500 mt-1">
+            {textContent.length}/{maxLength}字
+          </p>
         </div>
 
         <div>
@@ -113,7 +163,9 @@ export default function EditPage(props) {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {systemFonts.map(font => <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>)}
+              {systemFonts.map(font => <SelectItem key={font.value} value={font.value}>
+                  {font.label}
+                </SelectItem>)}
             </SelectContent>
           </Select>
         </div>

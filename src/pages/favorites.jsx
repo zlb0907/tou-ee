@@ -5,8 +5,12 @@ import { ArrowLeft, Heart } from 'lucide-react';
 // @ts-ignore;
 import { Button } from '@/components/ui';
 
+// @ts-ignore;
 import { TemplateCard } from '@/components/TemplateCard';
+// @ts-ignore;
 import { TabBar } from '@/components/TabBar';
+// @ts-ignore;
+import { wxUtils } from '@/lib/wx-utils';
 export default function FavoritesPage(props) {
   const {
     $w,
@@ -14,19 +18,38 @@ export default function FavoritesPage(props) {
   } = props;
   const [favorites, setFavorites] = useState([]);
   const handleBack = () => {
-    $w.utils.navigateBack();
+    if (typeof wx !== 'undefined' && wx.navigateBack) {
+      wx.navigateBack();
+    } else {
+      $w.utils.navigateBack();
+    }
   };
   useEffect(() => {
-    const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
-    setFavorites(favs);
+    // 微信小程序数据存储
+    const loadFavorites = async () => {
+      if (typeof wx !== 'undefined') {
+        const favs = (await wxUtils.getStorage('favorites')) || [];
+        setFavorites(favs);
+      } else {
+        const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+        setFavorites(favs);
+      }
+    };
+    loadFavorites();
   }, []);
   const handleTemplateClick = template => {
-    $w.utils.navigateTo({
-      pageId: 'edit',
-      params: {
-        templateId: template.id
-      }
-    });
+    if (typeof wx !== 'undefined' && wx.navigateTo) {
+      wx.navigateTo({
+        url: `/pages/edit/edit?templateId=${template.id}`
+      });
+    } else {
+      $w.utils.navigateTo({
+        pageId: 'edit',
+        params: {
+          templateId: template.id
+        }
+      });
+    }
   };
   return <div style={style} className="min-h-screen bg-gray-50">
       {/* 顶部工具栏 */}
@@ -45,9 +68,17 @@ export default function FavoritesPage(props) {
         {favorites.length === 0 ? <div className="text-center py-20">
             <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">暂无收藏模板</p>
-            <Button variant="outline" className="mt-4" onClick={() => $w.utils.navigateTo({
-          pageId: 'home'
-        })}>
+            <Button variant="outline" className="mt-4" onClick={() => {
+          if (typeof wx !== 'undefined' && wx.navigateTo) {
+            wx.navigateTo({
+              url: '/pages/home/home'
+            });
+          } else {
+            $w.utils.navigateTo({
+              pageId: 'home'
+            });
+          }
+        }}>
               去首页看看
             </Button>
           </div> : <div className="grid grid-cols-3 gap-3">
@@ -58,9 +89,15 @@ export default function FavoritesPage(props) {
       {/* 底部导航 */}
       <TabBar activeTab="favorites" onTabChange={tab => {
       if (tab !== 'favorites' && tab !== 'share') {
-        $w.utils.navigateTo({
-          pageId: tab
-        });
+        if (typeof wx !== 'undefined' && wx.navigateTo) {
+          wx.navigateTo({
+            url: `/pages/${tab}/${tab}`
+          });
+        } else {
+          $w.utils.navigateTo({
+            pageId: tab
+          });
+        }
       }
     }} />
     </div>;

@@ -5,8 +5,12 @@ import { Search, Plus } from 'lucide-react';
 // @ts-ignore;
 import { Input, Button, Badge } from '@/components/ui';
 
+// @ts-ignore;
 import { TemplateCard } from '@/components/TemplateCard';
+// @ts-ignore;
 import { TabBar } from '@/components/TabBar';
+// @ts-ignore;
+import { wxUtils } from '@/lib/wx-utils';
 export default function HomePage(props) {
   const {
     $w,
@@ -32,7 +36,7 @@ export default function HomePage(props) {
       }
       templates.push({
         id: i,
-        name: '',
+        name: `模板 ${i}`,
         image: `https://images.unsplash.com/photo-${1578662996442 + i}?w=400&h=400&fit=crop`,
         category: categories[Math.floor(Math.random() * (categories.length - 1)) + 1],
         usageCount: Math.floor(Math.random() * 5000) + 100,
@@ -42,6 +46,20 @@ export default function HomePage(props) {
     return templates;
   };
   useEffect(() => {
+    // 微信小程序分享配置
+    if (typeof wx !== 'undefined' && wx.showShareMenu) {
+      wx.showShareMenu({
+        withShareTicket: true,
+        menus: ['shareAppMessage', 'shareTimeline']
+      });
+      wx.onShareAppMessage(() => ({
+        title: '姓氏头像制作',
+        path: '/pages/home/home',
+        imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop'
+      }));
+    }
+
+    // 加载模板数据
     setTimeout(() => {
       setTemplates(generateMockTemplates(1, 30));
       setLoading(false);
@@ -73,17 +91,31 @@ export default function HomePage(props) {
     return matchesSearch && matchesCategory;
   });
   const handleTemplateClick = template => {
-    $w.utils.navigateTo({
-      pageId: 'edit',
-      params: {
-        templateId: template.id
-      }
-    });
+    // 微信小程序路由跳转
+    if (typeof wx !== 'undefined' && wx.navigateTo) {
+      wx.navigateTo({
+        url: `/pages/edit/edit?templateId=${template.id}`
+      });
+    } else {
+      $w.utils.navigateTo({
+        pageId: 'edit',
+        params: {
+          templateId: template.id
+        }
+      });
+    }
   };
   const handleUploadTemplate = () => {
-    $w.utils.navigateTo({
-      pageId: 'adminUpload'
-    });
+    // 微信小程序路由跳转
+    if (typeof wx !== 'undefined' && wx.navigateTo) {
+      wx.navigateTo({
+        url: '/pages/adminUpload/adminUpload'
+      });
+    } else {
+      $w.utils.navigateTo({
+        pageId: 'adminUpload'
+      });
+    }
   };
   return <div style={style} className="min-h-screen bg-gray-50">
       {/* 顶部搜索栏 */}
@@ -126,9 +158,15 @@ export default function HomePage(props) {
       {/* 底部导航 */}
       <TabBar activeTab="home" onTabChange={tab => {
       if (tab !== 'home' && tab !== 'share') {
-        $w.utils.navigateTo({
-          pageId: tab
-        });
+        if (typeof wx !== 'undefined' && wx.navigateTo) {
+          wx.navigateTo({
+            url: `/pages/${tab}/${tab}`
+          });
+        } else {
+          $w.utils.navigateTo({
+            pageId: tab
+          });
+        }
       }
     }} />
     </div>;
