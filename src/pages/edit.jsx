@@ -1,18 +1,43 @@
 // @ts-ignore;
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 // @ts-ignore;
-import { ArrowLeft, Download, Type, Settings } from 'lucide-react';
-// @ts-ignore;
-import { Button, Input, Slider, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from '@/components/ui';
+import { ArrowLeft, Download, Type } from 'lucide-react';
 
+// 简化版组件
+const Button = ({
+  children,
+  onClick,
+  className = '',
+  variant = 'default'
+}) => <button onClick={onClick} className={`px-4 py-2 rounded-lg transition-colors ${className} ${variant === 'outline' ? 'border border-gray-300 hover:border-orange-500' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}>
+    {children}
+  </button>;
+const Input = ({
+  value,
+  onChange,
+  placeholder,
+  type = 'text',
+  className = ''
+}) => <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 ${className}`} />;
+const Slider = ({
+  value,
+  onValueChange,
+  min,
+  max,
+  step
+}) => <input type="range" min={min} max={max} step={step} value={value[0]} onChange={e => onValueChange([parseInt(e.target.value)])} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />;
+const Select = ({
+  children,
+  value,
+  onValueChange
+}) => <select value={value} onChange={e => onValueChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500">
+    {children}
+  </select>;
 export default function EditPage(props) {
   const {
-    $w,
-    style
+    $w
   } = props;
   const templateId = $w.page.dataset.params?.templateId || '1';
-  const [editableAreas, setEditableAreas] = useState([]);
-  const [selectedArea, setSelectedArea] = useState(null);
   const [textContent, setTextContent] = useState('张');
   const [fontSize, setFontSize] = useState(50);
   const [fontColor, setFontColor] = useState('#000000');
@@ -37,16 +62,14 @@ export default function EditPage(props) {
     $w.utils.navigateBack();
   };
   const handleSave = () => {
-    const invalidAreas = editableAreas.filter(area => area.text.length < area.minLength || area.text.length > area.maxLength);
-    if (invalidAreas.length > 0) {
-      alert(`文字长度不符合要求：${invalidAreas.map(a => `${a.text} (${a.minLength}-${a.maxLength}字)`).join(', ')}`);
+    if (textContent.length < minLength || textContent.length > maxLength) {
+      alert(`文字长度不符合要求：${minLength}-${maxLength}字`);
       return;
     }
     alert('头像已保存到相册！');
   };
   const loadTemplateData = async () => {
     try {
-      // 模拟从数据源加载模板数据
       const mockTemplate = {
         id: templateId,
         name: '新春福字模板',
@@ -66,7 +89,6 @@ export default function EditPage(props) {
       };
       setTemplateData(mockTemplate);
       setFontFamily(mockTemplate.fontFamily || 'kaiti');
-      setEditableAreas(mockTemplate.editableAreas || []);
       setTextContent(mockTemplate.editableAreas?.[0]?.text || '张');
       setMinLength(mockTemplate.editableAreas?.[0]?.minLength || 1);
       setMaxLength(mockTemplate.editableAreas?.[0]?.maxLength || 4);
@@ -78,32 +100,15 @@ export default function EditPage(props) {
   useEffect(() => {
     loadTemplateData();
   }, [templateId]);
-  useEffect(() => {
-    // 加载自定义字体
-    if (templateData?.customFonts) {
-      templateData.customFonts.forEach(font => {
-        if (font.url) {
-          const style = document.createElement('style');
-          style.innerHTML = `
-            @font-face {
-              font-family: '${font.value}';
-              src: url(${font.url}) format('truetype');
-            }
-          `;
-          document.head.appendChild(style);
-        }
-      });
-    }
-  }, [templateData]);
-  return <div style={style} className="min-h-screen bg-gray-50">
-      {/* 顶部工具栏 - 移除分享图标 */}
+  return <div className="min-h-screen bg-gray-50 pb-20">
+      {/* 顶部工具栏 */}
       <div className="sticky top-0 z-10 bg-white shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
-          <Button variant="ghost" size="icon" onClick={handleBack}>
+          <Button variant="outline" onClick={handleBack} className="p-2">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-lg font-medium">编辑头像</h1>
-          <Button variant="ghost" size="icon" onClick={handleSave}>
+          <Button onClick={handleSave} className="p-2">
             <Download className="w-5 h-5" />
           </Button>
         </div>
@@ -136,7 +141,7 @@ export default function EditPage(props) {
       <div className="px-4 space-y-4">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">姓氏</label>
-          <Input type="text" value={textContent} onChange={e => setTextContent(e.target.value.slice(0, maxLength))} maxLength={maxLength} className="text-center text-lg" />
+          <Input value={textContent} onChange={e => setTextContent(e.target.value.slice(0, maxLength))} maxLength={maxLength} className="text-center text-lg" />
           <p className="text-xs text-gray-500 mt-1">{textContent.length}/{maxLength}字</p>
         </div>
 
@@ -157,12 +162,7 @@ export default function EditPage(props) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">字体</label>
           <Select value={fontFamily} onValueChange={setFontFamily}>
-            <SelectTrigger>
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {systemFonts.map(font => <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>)}
-            </SelectContent>
+            {systemFonts.map(font => <option key={font.value} value={font.value}>{font.label}</option>)}
           </Select>
         </div>
 
@@ -183,7 +183,7 @@ export default function EditPage(props) {
       </div>
 
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleSave}>
+        <Button className="w-full" onClick={handleSave}>
           保存头像
         </Button>
       </div>
