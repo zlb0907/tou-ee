@@ -1,14 +1,14 @@
 // @ts-ignore;
 import React, { useState, useEffect, useCallback } from 'react';
 // @ts-ignore;
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Filter } from 'lucide-react';
 // @ts-ignore;
 import { Input, Button, Badge } from '@/components/ui';
 
 // @ts-ignore;
-import { TemplateCard } from '@/components/TemplateCard';
+import { WxTemplateCard } from '@/components/WxTemplateCard';
 // @ts-ignore;
-import { TabBar } from '@/components/TabBar';
+import { WxTabBar } from '@/components/WxTabBar';
 export default function HomePage(props) {
   const {
     $w,
@@ -21,15 +21,16 @@ export default function HomePage(props) {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [isAdmin, setIsAdmin] = useState(true);
+  const [showFilter, setShowFilter] = useState(false);
   const categories = ['全部', '女生', '男生', '情侣', '亲子', '全家福', '情头'];
+
+  // 生成模拟模板数据
   const generateMockTemplates = (start, count) => {
     const tags = ['女生', '男生', '情侣', '亲子', '全家福', '情头'];
     const templates = [];
     let currentId = start;
-
-    // 跳过ID为1、2、3的模板
     while (templates.length < count) {
-      // 如果当前ID是1、2、3，则跳过
+      // 跳过ID为1、2、3的模板
       if (currentId === 1 || currentId === 2 || currentId === 3) {
         currentId++;
         continue;
@@ -52,37 +53,60 @@ export default function HomePage(props) {
     }
     return templates;
   };
+
+  // 初始化数据
   useEffect(() => {
-    // 微信小程序分享配置
-    if (typeof wx !== 'undefined' && wx.showShareMenu) {
-      wx.showShareMenu({
-        withShareTicket: true,
-        menus: ['shareAppMessage', 'shareTimeline']
-      });
-      wx.onShareAppMessage(() => ({
-        title: '姓氏头像制作',
-        path: '/pages/home/home',
-        imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop'
-      }));
+    // 从本地存储加载数据
+    const savedTemplates = localStorage.getItem('templates');
+    if (savedTemplates) {
+      setTemplates(JSON.parse(savedTemplates));
+      setLoading(false);
+    } else {
+      // 生成初始数据
+      const initialTemplates = generateMockTemplates(4, 30);
+      setTemplates(initialTemplates);
+      localStorage.setItem('templates', JSON.stringify(initialTemplates));
+      setLoading(false);
     }
 
-    // 加载模板数据，从ID 4开始
-    setTimeout(() => {
-      setTemplates(generateMockTemplates(4, 30));
-      setLoading(false);
-    }, 1000);
+    // 微信小程序分享配置
+    if (typeof wx !== 'undefined') {
+      // 设置分享
+      if (wx.showShareMenu) {
+        wx.showShareMenu({
+          withShareTicket: true,
+          menus: ['shareAppMessage', 'shareTimeline']
+        });
+      }
+
+      // 监听分享
+      if (wx.onShareAppMessage) {
+        wx.onShareAppMessage(() => ({
+          title: '姓氏头像制作 - 专属你的个性头像',
+          desc: '一键生成专属姓氏头像，支持多种字体和样式',
+          path: '/pages/home/home',
+          imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop'
+        }));
+      }
+    }
   }, []);
+
+  // 加载更多数据
   const loadMore = useCallback(() => {
     if (loading || !hasMore) return;
     setLoading(true);
     setTimeout(() => {
       const newTemplates = generateMockTemplates(templates.length + 4, 15);
-      setTemplates(prev => [...prev, ...newTemplates]);
+      const updatedTemplates = [...templates, ...newTemplates];
+      setTemplates(updatedTemplates);
+      localStorage.setItem('templates', JSON.stringify(updatedTemplates));
       setPage(prev => prev + 1);
-      if (templates.length >= 100) setHasMore(false);
+      if (updatedTemplates.length >= 100) setHasMore(false);
       setLoading(false);
-    }, 1000);
+    }, 800);
   }, [templates.length, loading, hasMore]);
+
+  // 滚动加载
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerHeight + document.documentElement.scrollTop >= document.documentElement.offsetHeight - 100) {
@@ -92,13 +116,16 @@ export default function HomePage(props) {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, [loadMore]);
+
+  // 过滤模板
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = template.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === '全部' || template.category === selectedCategory || template.tags.includes(selectedCategory);
     return matchesSearch && matchesCategory;
   });
+
+  // 处理模板点击
   const handleTemplateClick = template => {
-    // 使用框架路由跳转
     $w.utils.navigateTo({
       pageId: 'edit',
       params: {
@@ -107,8 +134,9 @@ export default function HomePage(props) {
       }
     });
   };
+
+  // 处理上传模板
   const handleUploadTemplate = () => {
-    // 使用框架路由跳转
     $w.utils.navigateTo({
       pageId: 'adminUpload'
     });
@@ -122,12 +150,21 @@ export default function HomePage(props) {
             <Input type="text" placeholder="搜索姓氏模板..." value={searchTerm} onChange={e => setSearchTerm(e.target.value)} className="pl-10 pr-4 py-2 w-full rounded-full bg-gray-100 border-0 focus:ring-2 focus:ring-orange-500" />
           </div>
         </div>
+        
+        {/* 分类筛选 */}
         <div className="px-4 pb-3">
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
-            {categories.map(category => <Badge key={category} variant={selectedCategory === category ? "default" : "outline"} className={`cursor-pointer whitespace-nowrap px-3 py-1 text-sm ${selectedCategory === category ? 'bg-orange-500 hover:bg-orange-600' : 'border-gray-300 text-gray-600 hover:border-orange-500'}`} onClick={() => setSelectedCategory(category)}>
-                {category}
-              </Badge>)}
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-sm font-medium text-gray-700">分类</span>
+            <Button variant="ghost" size="sm" onClick={() => setShowFilter(!showFilter)} className="text-gray-500">
+              <Filter className="w-4 h-4" />
+            </Button>
           </div>
+          
+          {showFilter && <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-2">
+              {categories.map(category => <Badge key={category} variant={selectedCategory === category ? "default" : "outline"} className={`cursor-pointer whitespace-nowrap px-3 py-1 text-sm transition-all duration-200 ${selectedCategory === category ? 'bg-orange-500 hover:bg-orange-600 text-white' : 'border-gray-300 text-gray-600 hover:border-orange-500 hover:text-orange-500'}`} onClick={() => setSelectedCategory(category)}>
+                  {category}
+                </Badge>)}
+            </div>}
         </div>
       </div>
 
@@ -138,21 +175,23 @@ export default function HomePage(props) {
           aspectRatio: '1'
         }} />)}
           </div> : <div className="grid grid-cols-3 gap-3">
-            {filteredTemplates.map(template => <TemplateCard key={template.id} template={template} onClick={() => handleTemplateClick(template)} />)}
+            {filteredTemplates.map(template => <WxTemplateCard key={template.id} template={template} onClick={handleTemplateClick} />)}
           </div>}
+        
         {loading && templates.length > 0 && <div className="flex justify-center py-4">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-500"></div>
           </div>}
+        
         {!hasMore && templates.length > 0 && <div className="text-center py-4 text-gray-500">已经加载全部模板</div>}
       </div>
 
       {/* 管理员上传按钮 */}
-      {isAdmin && <Button className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg z-20" onClick={handleUploadTemplate}>
+      {isAdmin && <Button className="fixed bottom-20 right-4 w-14 h-14 rounded-full bg-orange-500 hover:bg-orange-600 text-white shadow-lg z-20 transition-all duration-200 active:scale-95" onClick={handleUploadTemplate}>
           <Plus className="w-6 h-6" />
         </Button>}
 
       {/* 底部导航 */}
-      <TabBar activeTab="home" onTabChange={tab => {
+      <WxTabBar activeTab="home" onTabChange={tab => {
       if (tab !== 'home' && tab !== 'share') {
         $w.utils.navigateTo({
           pageId: tab
