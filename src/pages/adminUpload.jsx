@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 // @ts-ignore;
 import { ArrowLeft, Upload, Image, Type, Settings, X, Plus } from 'lucide-react';
 // @ts-ignore;
-import { Button, Input, Textarea, Card, CardContent, Badge, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui';
+import { Button, Input, Textarea, Card, CardContent, Badge, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
 
 export default function AdminUploadPage(props) {
   const {
