@@ -1,41 +1,14 @@
 // @ts-ignore;
-import React, { useState, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 // @ts-ignore;
-import { ArrowLeft, Download, Type } from 'lucide-react';
+import { ArrowLeft, Download } from 'lucide-react';
+// @ts-ignore;
+import { Button, Input, Slider, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from '@/components/ui';
 
-// 简化版组件
-const Button = ({
-  children,
-  onClick,
-  className = '',
-  variant = 'default'
-}) => <button onClick={onClick} className={`px-4 py-2 rounded-lg transition-colors ${className} ${variant === 'outline' ? 'border border-gray-300 hover:border-orange-500' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}>
-    {children}
-  </button>;
-const Input = ({
-  value,
-  onChange,
-  placeholder,
-  type = 'text',
-  className = ''
-}) => <input type={type} value={value} onChange={onChange} placeholder={placeholder} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 ${className}`} />;
-const Slider = ({
-  value,
-  onValueChange,
-  min,
-  max,
-  step
-}) => <input type="range" min={min} max={max} step={step} value={value[0]} onChange={e => onValueChange([parseInt(e.target.value)])} className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer" />;
-const Select = ({
-  children,
-  value,
-  onValueChange
-}) => <select value={value} onChange={e => onValueChange(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500">
-    {children}
-  </select>;
 export default function EditPage(props) {
   const {
-    $w
+    $w,
+    style
   } = props;
   const templateId = $w.page.dataset.params?.templateId || '1';
   const [textContent, setTextContent] = useState('张');
@@ -44,7 +17,6 @@ export default function EditPage(props) {
   const [fontFamily, setFontFamily] = useState('kaiti');
   const [minLength, setMinLength] = useState(1);
   const [maxLength, setMaxLength] = useState(4);
-  const [templateData, setTemplateData] = useState(null);
   const systemFonts = [{
     value: 'kaiti',
     label: '楷体'
@@ -63,65 +35,40 @@ export default function EditPage(props) {
   };
   const handleSave = () => {
     if (textContent.length < minLength || textContent.length > maxLength) {
-      alert(`文字长度不符合要求：${minLength}-${maxLength}字`);
+      alert(`文字长度不符合要求：${textContent} (${minLength}-${maxLength}字)`);
       return;
     }
     alert('头像已保存到相册！');
   };
-  const loadTemplateData = async () => {
-    try {
-      const mockTemplate = {
-        id: templateId,
-        name: '新春福字模板',
-        image: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop',
-        fontFamily: 'kaiti',
-        editableAreas: [{
-          id: 1,
-          x: 100,
-          y: 100,
-          width: 100,
-          height: 100,
-          text: '福',
-          minLength: 1,
-          maxLength: 2
-        }],
-        customFonts: []
-      };
-      setTemplateData(mockTemplate);
-      setFontFamily(mockTemplate.fontFamily || 'kaiti');
-      setTextContent(mockTemplate.editableAreas?.[0]?.text || '张');
-      setMinLength(mockTemplate.editableAreas?.[0]?.minLength || 1);
-      setMaxLength(mockTemplate.editableAreas?.[0]?.maxLength || 4);
-    } catch (error) {
-      console.error('加载模板失败:', error);
-      setFontFamily('kaiti');
-    }
-  };
+
+  // 根据模板ID自动选择字体（模拟逻辑）
   useEffect(() => {
-    loadTemplateData();
+    // 这里可以根据模板ID从后端获取对应的字体设置
+    // 暂时使用默认楷体
+    setFontFamily('kaiti');
   }, [templateId]);
-  return <div className="min-h-screen bg-gray-50 pb-20">
+  return <div style={style} className="min-h-screen bg-gray-50">
       {/* 顶部工具栏 */}
       <div className="sticky top-0 z-10 bg-white shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
-          <Button variant="outline" onClick={handleBack} className="p-2">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-lg font-medium">编辑头像</h1>
-          <Button onClick={handleSave} className="p-2">
+          <Button variant="ghost" size="icon" onClick={handleSave}>
             <Download className="w-5 h-5" />
           </Button>
         </div>
       </div>
 
-      {/* 模板预览区域 */}
+      {/* 预览区域 */}
       <div className="px-4 py-4">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
           <div className="relative bg-gradient-to-br from-orange-100 to-orange-200" style={{
           aspectRatio: '1'
         }}>
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="font-bold" style={{
+              <div className="absolute inset-0 flex items-center justify-center">
+                <span className="font-bold" style={{
               fontSize: `${fontSize}px`,
               color: fontColor,
               fontFamily: fontFamily,
@@ -130,18 +77,18 @@ export default function EditPage(props) {
               position: 'absolute',
               transform: 'translate(-50%, -50%)'
             }}>
-                {textContent}
-              </span>
+                  {textContent}
+                </span>
+              </div>
             </div>
-          </div>
         </div>
       </div>
 
-      {/* 编辑控制区域 */}
-      <div className="px-4 space-y-4">
+      {/* 编辑工具 */}
+      <div className="px-4 space-y-4 pb-20">
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">姓氏</label>
-          <Input value={textContent} onChange={e => setTextContent(e.target.value.slice(0, maxLength))} maxLength={maxLength} className="text-center text-lg" />
+          <Input type="text" value={textContent} onChange={e => setTextContent(e.target.value.slice(0, maxLength))} maxLength={maxLength} className="text-center text-lg" />
           <p className="text-xs text-gray-500 mt-1">{textContent.length}/{maxLength}字</p>
         </div>
 
@@ -162,7 +109,12 @@ export default function EditPage(props) {
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">字体</label>
           <Select value={fontFamily} onValueChange={setFontFamily}>
-            {systemFonts.map(font => <option key={font.value} value={font.value}>{font.label}</option>)}
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {systemFonts.map(font => <SelectItem key={font.value} value={font.value}>{font.label}</SelectItem>)}
+            </SelectContent>
           </Select>
         </div>
 
@@ -180,10 +132,8 @@ export default function EditPage(props) {
           }} onClick={() => setFontColor(color)} />)}
           </div>
         </div>
-      </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4">
-        <Button className="w-full" onClick={handleSave}>
+        <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white" onClick={handleSave}>
           保存头像
         </Button>
       </div>

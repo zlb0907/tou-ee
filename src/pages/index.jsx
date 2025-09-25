@@ -1,98 +1,16 @@
 // @ts-ignore;
 import React, { useState, useEffect, useCallback } from 'react';
 // @ts-ignore;
-import { Search, Plus, Home, Heart, User, Share2, ArrowLeft, Download } from 'lucide-react';
+import { Search, Plus } from 'lucide-react';
+// @ts-ignore;
+import { Input, Button, Badge } from '@/components/ui';
 
-// 简化版组件
-const Button = ({
-  children,
-  onClick,
-  className = '',
-  variant = 'default'
-}) => <button onClick={onClick} className={`px-4 py-2 rounded-lg transition-colors ${className} ${variant === 'outline' ? 'border border-gray-300 hover:border-orange-500' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}>
-    {children}
-  </button>;
-const Input = ({
-  value,
-  onChange,
-  placeholder,
-  className = ''
-}) => <input type="text" value={value} onChange={onChange} placeholder={placeholder} className={`w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-orange-500 ${className}`} />;
-const Badge = ({
-  children,
-  onClick,
-  className = '',
-  active = false
-}) => <button onClick={onClick} className={`px-3 py-1 text-sm rounded-full transition-colors ${className} ${active ? 'bg-orange-500 text-white' : 'border border-gray-300 text-gray-600 hover:border-orange-500'}`}>
-    {children}
-  </button>;
-const TemplateCard = ({
-  template,
-  onClick
-}) => <div className="relative cursor-pointer group" onClick={onClick}>
-    <img src={template.image} alt={template.name} className="w-full h-full object-cover rounded-lg" />
-    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
-    <div className="absolute bottom-1 left-1 right-1">
-      <div className="text-white text-xs bg-black/50 px-2 py-1 rounded">
-        {template.usageCount}次使用
-      </div>
-    </div>
-  </div>;
-const TabBar = ({
-  activeTab,
-  onTabChange
-}) => {
-  const tabs = [{
-    id: 'index',
-    icon: Home,
-    label: '首页'
-  }, {
-    id: 'favorites',
-    icon: Heart,
-    label: '收藏'
-  }, {
-    id: 'profile',
-    icon: User,
-    label: '我的'
-  }, {
-    id: 'share',
-    icon: Share2,
-    label: '分享'
-  }];
-  return <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-      <div className="flex justify-around py-2">
-        {tabs.map(tab => {
-        const Icon = tab.icon;
-        const isActive = activeTab === tab.id;
-        return <button key={tab.id} className="flex flex-col items-center py-2 px-4" onClick={() => {
-          if (tab.id === 'share') {
-            if (window.wx) {
-              window.wx.showShareMenu({
-                withShareTicket: true,
-                menus: ['shareAppMessage', 'shareTimeline']
-              });
-              window.wx.shareAppMessage({
-                title: '姓氏头像制作',
-                desc: '一键生成专属姓氏头像',
-                path: '/pages/index/index',
-                imageUrl: 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop'
-              });
-            } else {
-              alert('请在微信小程序内使用分享功能');
-            }
-          } else {
-            onTabChange(tab.id);
-          }
-        }}>
-              <Icon className={`w-6 h-6 ${isActive ? 'text-orange-500' : 'text-gray-400'}`} />
-            </button>;
-      })}
-      </div>
-    </div>;
-};
+import { TemplateCard } from '@/components/TemplateCard';
+import { TabBar } from '@/components/TabBar';
 export default function HomePage(props) {
   const {
-    $w
+    $w,
+    style
   } = props;
   const [templates, setTemplates] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -100,20 +18,28 @@ export default function HomePage(props) {
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [isAdmin] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(true);
   const categories = ['全部', '女生', '男生', '情侣', '亲子', '全家福', '情头'];
   const generateMockTemplates = (start, count) => {
     const tags = ['女生', '男生', '情侣', '亲子', '全家福', '情头'];
-    return Array.from({
-      length: count
-    }, (_, i) => ({
-      id: start + i,
-      name: '',
-      image: `https://images.unsplash.com/photo-${1578662996442 + start + i}?w=400&h=400&fit=crop`,
-      category: categories[Math.floor(Math.random() * (categories.length - 1)) + 1],
-      usageCount: Math.floor(Math.random() * 5000) + 100,
-      tags: tags.sort(() => Math.random() - 0.5).slice(0, Math.floor(Math.random() * 3) + 1)
-    }));
+    const templates = [];
+    for (let i = start; i < start + count; i++) {
+      const templateTags = [];
+      const tagCount = Math.floor(Math.random() * 3) + 1;
+      const shuffledTags = [...tags].sort(() => Math.random() - 0.5);
+      for (let j = 0; j < tagCount; j++) {
+        templateTags.push(shuffledTags[j]);
+      }
+      templates.push({
+        id: i,
+        name: '',
+        image: `https://images.unsplash.com/photo-${1578662996442 + i}?w=400&h=400&fit=crop`,
+        category: categories[Math.floor(Math.random() * (categories.length - 1)) + 1],
+        usageCount: Math.floor(Math.random() * 5000) + 100,
+        tags: templateTags
+      });
+    }
+    return templates;
   };
   useEffect(() => {
     setTimeout(() => {
@@ -159,7 +85,7 @@ export default function HomePage(props) {
       pageId: 'adminUpload'
     });
   };
-  return <div className="min-h-screen bg-gray-50 pb-20">
+  return <div style={style} className="min-h-screen bg-gray-50">
       {/* 顶部搜索栏 */}
       <div className="sticky top-0 z-10 bg-white shadow-sm">
         <div className="px-4 py-3">
@@ -169,8 +95,8 @@ export default function HomePage(props) {
           </div>
         </div>
         <div className="px-4 pb-3">
-          <div className="flex gap-2 overflow-x-auto">
-            {categories.map(category => <Badge key={category} active={selectedCategory === category} onClick={() => setSelectedCategory(category)}>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide">
+            {categories.map(category => <Badge key={category} variant={selectedCategory === category ? "default" : "outline"} className={`cursor-pointer whitespace-nowrap px-3 py-1 text-sm ${selectedCategory === category ? 'bg-orange-500 hover:bg-orange-600' : 'border-gray-300 text-gray-600 hover:border-orange-500'}`} onClick={() => setSelectedCategory(category)}>
                 {category}
               </Badge>)}
           </div>
@@ -198,8 +124,8 @@ export default function HomePage(props) {
         </Button>}
 
       {/* 底部导航 */}
-      <TabBar activeTab="index" onTabChange={tab => {
-      if (tab !== 'index' && tab !== 'share') {
+      <TabBar activeTab="home" onTabChange={tab => {
+      if (tab !== 'home' && tab !== 'share') {
         $w.utils.navigateTo({
           pageId: tab
         });

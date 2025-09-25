@@ -1,36 +1,25 @@
 // @ts-ignore;
 import React, { useState, useEffect } from 'react';
 // @ts-ignore;
-import { ArrowLeft, Heart, Home, User } from 'lucide-react';
+import { ArrowLeft, Heart } from 'lucide-react';
+// @ts-ignore;
+import { Button } from '@/components/ui';
 
-// 简化版组件
-const Button = ({
-  children,
-  onClick,
-  className = '',
-  variant = 'default'
-}) => <button onClick={onClick} className={`px-4 py-2 rounded-lg transition-colors ${className} ${variant === 'outline' ? 'border border-gray-300 hover:border-orange-500' : 'bg-orange-500 hover:bg-orange-600 text-white'}`}>
-    {children}
-  </button>;
-const TemplateCard = ({
-  template,
-  onClick
-}) => <div className="relative cursor-pointer group" onClick={onClick}>
-    <img src={template.image} alt={template.name} className="w-full h-full object-cover rounded-lg" />
-    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors rounded-lg" />
-  </div>;
+import { TemplateCard } from '@/components/TemplateCard';
+import { TabBar } from '@/components/TabBar';
 export default function FavoritesPage(props) {
   const {
-    $w
+    $w,
+    style
   } = props;
   const [favorites, setFavorites] = useState([]);
+  const handleBack = () => {
+    $w.utils.navigateBack();
+  };
   useEffect(() => {
     const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
     setFavorites(favs);
   }, []);
-  const handleBack = () => {
-    $w.utils.navigateBack();
-  };
   const handleTemplateClick = template => {
     $w.utils.navigateTo({
       pageId: 'edit',
@@ -39,11 +28,11 @@ export default function FavoritesPage(props) {
       }
     });
   };
-  return <div className="min-h-screen bg-gray-50 pb-20">
+  return <div style={style} className="min-h-screen bg-gray-50">
       {/* 顶部工具栏 */}
       <div className="sticky top-0 z-10 bg-white shadow-sm">
         <div className="flex items-center justify-between px-4 py-3">
-          <Button variant="outline" onClick={handleBack} className="p-2">
+          <Button variant="ghost" size="icon" onClick={handleBack}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="text-lg font-medium">我的收藏</h1>
@@ -57,7 +46,7 @@ export default function FavoritesPage(props) {
             <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">暂无收藏模板</p>
             <Button variant="outline" className="mt-4" onClick={() => $w.utils.navigateTo({
-          pageId: 'index'
+          pageId: 'home'
         })}>
               去首页看看
             </Button>
@@ -66,25 +55,13 @@ export default function FavoritesPage(props) {
           </div>}
       </div>
 
-      {/* 底部导航 - 简化版 */}
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200">
-        <div className="flex justify-around py-2">
-          <button className="flex flex-col items-center py-2 px-4" onClick={() => $w.utils.navigateTo({
-          pageId: 'index'
-        })}>
-            <Home className="w-6 h-6 text-gray-400" />
-          </button>
-          <button className="flex flex-col items-center py-2 px-4" onClick={() => $w.utils.navigateTo({
-          pageId: 'favorites'
-        })}>
-            <Heart className="w-6 h-6 text-orange-500" />
-          </button>
-          <button className="flex flex-col items-center py-2 px-4" onClick={() => $w.utils.navigateTo({
-          pageId: 'profile'
-        })}>
-            <User className="w-6 h-6 text-gray-400" />
-          </button>
-        </div>
-      </div>
+      {/* 底部导航 */}
+      <TabBar activeTab="favorites" onTabChange={tab => {
+      if (tab !== 'favorites' && tab !== 'share') {
+        $w.utils.navigateTo({
+          pageId: tab
+        });
+      }
+    }} />
     </div>;
 }
