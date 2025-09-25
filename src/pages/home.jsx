@@ -25,7 +25,15 @@ export default function HomePage(props) {
   const generateMockTemplates = (start, count) => {
     const tags = ['女生', '男生', '情侣', '亲子', '全家福', '情头'];
     const templates = [];
-    for (let i = start; i < start + count; i++) {
+    let currentId = start;
+
+    // 跳过ID为1、2、3的模板
+    while (templates.length < count) {
+      // 如果当前ID是1、2、3，则跳过
+      if (currentId === 1 || currentId === 2 || currentId === 3) {
+        currentId++;
+        continue;
+      }
       const templateTags = [];
       const tagCount = Math.floor(Math.random() * 3) + 1;
       const shuffledTags = [...tags].sort(() => Math.random() - 0.5);
@@ -33,13 +41,14 @@ export default function HomePage(props) {
         templateTags.push(shuffledTags[j]);
       }
       templates.push({
-        id: i,
-        name: `模板 ${i}`,
-        image: `https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop&sig=${i}`,
+        id: currentId,
+        name: `模板 ${currentId}`,
+        image: `https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop&sig=${currentId}`,
         category: categories[Math.floor(Math.random() * (categories.length - 1)) + 1],
         usageCount: Math.floor(Math.random() * 5000) + 100,
         tags: templateTags
       });
+      currentId++;
     }
     return templates;
   };
@@ -57,9 +66,9 @@ export default function HomePage(props) {
       }));
     }
 
-    // 加载模板数据
+    // 加载模板数据，从ID 4开始
     setTimeout(() => {
-      setTemplates(generateMockTemplates(1, 30));
+      setTemplates(generateMockTemplates(4, 30));
       setLoading(false);
     }, 1000);
   }, []);
@@ -67,7 +76,7 @@ export default function HomePage(props) {
     if (loading || !hasMore) return;
     setLoading(true);
     setTimeout(() => {
-      const newTemplates = generateMockTemplates(templates.length + 1, 15);
+      const newTemplates = generateMockTemplates(templates.length + 4, 15);
       setTemplates(prev => [...prev, ...newTemplates]);
       setPage(prev => prev + 1);
       if (templates.length >= 100) setHasMore(false);
