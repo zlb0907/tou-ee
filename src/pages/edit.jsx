@@ -13,14 +13,16 @@ export default function EditPage(props) {
     style
   } = props;
 
-  // 从URL参数获取templateId
+  // 从URL参数获取templateId和模板数据
   const templateId = typeof wx !== 'undefined' ? wx.getCurrentPages().pop().options.templateId : $w.page.dataset.params?.templateId || '1';
+  const templateImage = typeof wx !== 'undefined' ? wx.getCurrentPages().pop().options.templateImage : $w.page.dataset.params?.templateImage || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop';
   const [textContent, setTextContent] = useState('张');
   const [fontSize, setFontSize] = useState(50);
   const [fontColor, setFontColor] = useState('#000000');
   const [fontFamily, setFontFamily] = useState('kaiti');
   const [minLength, setMinLength] = useState(1);
   const [maxLength, setMaxLength] = useState(4);
+  const canvasRef = useRef(null);
   const systemFonts = [{
     value: 'kaiti',
     label: '楷体'
@@ -34,6 +36,34 @@ export default function EditPage(props) {
     value: 'fangsong',
     label: '仿宋'
   }];
+
+  // 绘制Canvas
+  const drawCanvas = () => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      // 设置Canvas尺寸与图片一致
+      canvas.width = img.width;
+      canvas.height = img.height;
+
+      // 绘制背景图片
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+      // 绘制文字
+      ctx.font = `${fontSize}px ${fontFamily}`;
+      ctx.fillStyle = fontColor;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(textContent, canvas.width / 2, canvas.height / 2);
+    };
+    img.src = templateImage;
+  };
+  useEffect(() => {
+    drawCanvas();
+  }, [textContent, fontSize, fontColor, fontFamily, templateImage]);
   const handleBack = () => {
     if (typeof wx !== 'undefined' && wx.navigateBack) {
       wx.navigateBack();
@@ -50,40 +80,53 @@ export default function EditPage(props) {
       return;
     }
 
+    // 重新绘制确保Canvas内容最新
+    drawCanvas();
+
     // 微信小程序保存到相册
     if (typeof wx !== 'undefined' && wx.canvasToTempFilePath) {
-      const query = wx.createSelectorQuery();
-      query.select('#preview-canvas').fields({
-        node: true,
-        size: true
-      }).exec(res => {
-        const canvas = res[0].node;
-        wx.canvasToTempFilePath({
-          canvas,
-          success: res => {
-            wx.saveImageToPhotosAlbum({
-              filePath: res.tempFilePath,
-              success: () => {
-                wxUtils.showToast({
-                  title: '头像已保存到相册',
-                  icon: 'success'
-                });
-              },
-              fail: () => {
-                wxUtils.showToast({
-                  title: '保存失败，请重试',
-                  icon: 'error'
-                });
-              }
-            });
-          }
-        });
+      wx.canvasToTempFilePath({
+        canvas: canvasRef.current,
+        success: res => {
+          wx.saveImageToPhotosAlbum({
+            filePath: res.tempFilePath,
+            success: () => {
+              wxUtils.showToast({
+                title: '头像已保存到相册',
+                icon: 'success'
+              });
+            },
+            fail: () => {
+              wxUtils.showToast({
+                title: '保存失败，请重试',
+                icon: 'error'
+              });
+            }
+          });
+        },
+        fail: () => {
+          wxUtils.showToast({
+            title: '生成图片失败',
+            icon: 'error'
+          });
+        }
       });
     } else {
-      wxUtils.showToast({
-        title: '头像已保存',
-        icon: 'success'
-      });
+      // 浏览器环境下载图片
+      const canvas = canvasRef.current;
+      if (canvas) {
+        const dataURL = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `姓氏头像_${textContent}.png`;
+        link.href = dataURL;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        wxUtils.showToast({
+          title: '头像已下载',
+          icon: 'success'
+        });
+      }
     }
   };
 
@@ -108,29 +151,32 @@ export default function EditPage(props) {
       {/* 预览区域 */}
       <div className="px-4 py-4">
         <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="relative bg-gradient-to-br from-orange-100 to-orange-200" style={{
+          <div className="relative" style={{
           aspectRatio: '1'
         }}>
+            {/* 背景图片预览 */}
+            <img src={templateImage} alt="模板背景" className="w-full h-full object-cover" />
+            {/* 文字预览 */}
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className="font-bold" style={{
+              <span className="font-bold absolute" style={{
               fontSize: `${fontSize}px`,
               color: fontColor,
               fontFamily: fontFamily,
               left: '50%',
               top: '50%',
-              position: 'absolute',
               transform: 'translate(-50%, -50%)'
             }}>
                 {textContent}
               </span>
             </div>
-            {/* 微信小程序 canvas */}
-            {typeof wx !== 'undefined' && <canvas id="preview-canvas" className="absolute inset-0 w-full h-full" style={{
-            display: 'none'
-          }} />}
           </div>
         </div>
       </div>
+
+      {/* 隐藏的Canvas用于生成图片 */}
+      <canvas ref={canvasRef} style={{
+      display: 'none'
+    }} />
 
       {/* 编辑工具 */}
       <div className="px-4 space-y-4 pb-20">

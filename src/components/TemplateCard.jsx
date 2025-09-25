@@ -28,6 +28,18 @@ export function TemplateCard({
     }
     localStorage.setItem('favorites', JSON.stringify(favorites));
   };
+  const handleMakeAvatar = e => {
+    e.stopPropagation();
+    // 传递模板图片信息到编辑页面
+    if (typeof wx !== 'undefined' && wx.navigateTo) {
+      wx.navigateTo({
+        url: `/pages/edit/edit?templateId=${template.id}&templateImage=${encodeURIComponent(template.image)}`
+      });
+    } else {
+      // 浏览器环境
+      window.location.href = `/edit?templateId=${template.id}&templateImage=${encodeURIComponent(template.image)}`;
+    }
+  };
   const tags = template?.tags || [];
   const displayTags = tags.slice(0, 2);
   const remainingTags = tags.length > 2 ? tags.length - 2 : 0;
@@ -60,10 +72,7 @@ export function TemplateCard({
           {template?.usageCount || 0} 次使用
         </p>
         
-        <Button size="sm" className="w-full mt-2 h-6 px-2 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded" onClick={e => {
-        e.stopPropagation();
-        onClick();
-      }}>
+        <Button size="sm" className="w-full mt-2 h-6 px-2 bg-orange-500 hover:bg-orange-600 text-white text-xs rounded" onClick={handleMakeAvatar}>
           制作
         </Button>
       </div>
