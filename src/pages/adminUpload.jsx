@@ -5,8 +5,6 @@ import { ArrowLeft, Upload, Image, Type, Settings } from 'lucide-react';
 // @ts-ignore;
 import { Button, Input, Textarea, Card, CardContent, Badge, Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui';
 
-// @ts-ignore;
-import { wxUtils } from '@/lib/wx-utils';
 export default function AdminUploadPage(props) {
   const {
     $w,
@@ -43,33 +41,41 @@ export default function AdminUploadPage(props) {
     label: '仿宋'
   }];
   const handleBack = () => {
-    if (typeof wx !== 'undefined' && wx.navigateBack) {
-      wx.navigateBack();
+    $w.utils.navigateBack();
+  };
+  const handleImageUpload = e => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = event => setUploadedImage(event.target.result);
+      reader.readAsDataURL(file);
+    }
+  };
+  const handleFontUpload = e => {
+    const file = e.target.files[0];
+    if (file && (file.type === 'font/ttf' || file.type === 'font/otf' || file.name.endsWith('.ttf') || file.name.endsWith('.otf'))) {
+      const fontName = file.name.replace(/\.(ttf|otf)$/i, '');
+      const fontUrl = URL.createObjectURL(file);
+      const newFont = {
+        value: fontName,
+        label: fontName,
+        url: fontUrl
+      };
+      setCustomFonts(prev => [...prev, newFont]);
+
+      // 创建字体样式
+      const style = document.createElement('style');
+      style.innerHTML = `
+        @font-face {
+          font-family: '${fontName}';
+          src: url(${fontUrl}) format('truetype');
+        }
+      `;
+      document.head.appendChild(style);
+      alert(`字体 ${fontName} 已上传并可用`);
     } else {
-      $w.utils.navigateBack();
+      alert('请上传 TTF 或 OTF 格式的字体文件');
     }
-  };
-  const handleImageUpload = async () => {
-    try {
-      const res = await wxUtils.chooseImage({
-        count: 1
-      });
-      if (res.tempFilePaths && res.tempFilePaths.length > 0) {
-        setUploadedImage(res.tempFilePaths[0]);
-      }
-    } catch (error) {
-      wxUtils.showToast({
-        title: '图片选择失败',
-        icon: 'error'
-      });
-    }
-  };
-  const handleFontUpload = () => {
-    // 微信小程序暂不支持直接上传字体文件
-    wxUtils.showToast({
-      title: '微信小程序暂不支持字体上传',
-      icon: 'none'
-    });
   };
   const handleAddArea = () => {
     if (editableAreas.length < 5) {
@@ -93,10 +99,7 @@ export default function AdminUploadPage(props) {
   };
   const handleSubmit = () => {
     if (!uploadedImage || !templateName || editableAreas.length === 0) {
-      wxUtils.showToast({
-        title: '请上传图片、填写模板名称并添加至少一个可编辑区域',
-        icon: 'none'
-      });
+      alert('请上传图片、填写模板名称并添加至少一个可编辑区域');
       return;
     }
     const templateData = {
@@ -110,15 +113,8 @@ export default function AdminUploadPage(props) {
       usageCount: 0
     };
     console.log('上传模板:', templateData);
-    wxUtils.showToast({
-      title: '模板上传成功！',
-      icon: 'success'
-    });
-    if (typeof wx !== 'undefined' && wx.navigateBack) {
-      wx.navigateBack();
-    } else {
-      $w.utils.navigateBack();
-    }
+    alert('模板上传成功！');
+    $w.utils.navigateBack();
   };
   const allFonts = [...systemFonts, ...customFonts];
   return <div style={style} className="min-h-screen bg-gray-50">
@@ -147,13 +143,14 @@ export default function AdminUploadPage(props) {
                   aspectRatio: '1',
                   objectFit: 'cover'
                 }} />
-                    <Button size="sm" variant="secondary" className="absolute top-2 right-2" onClick={handleImageUpload}>
+                    <Button size="sm" variant="secondary" className="absolute top-2 right-2" onClick={() => document.getElementById('imageUpload').click()}>
                       更换
                     </Button>
-                  </div> : <button className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500" onClick={handleImageUpload}>
+                  </div> : <label htmlFor="imageUpload" className="flex flex-col items-center justify-center w-full h-48 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-orange-500">
                     <Upload className="w-8 h-8 text-gray-400 mb-2" />
                     <span className="text-sm text-gray-500">点击上传图片</span>
-                  </button>}
+                  </label>}
+                <input id="imageUpload" type="file" accept="image/*" onChange={handleImageUpload} className="hidden" />
               </div>
             </div>
 
@@ -184,16 +181,15 @@ export default function AdminUploadPage(props) {
         <Card>
           <CardContent className="p-4">
             <h3 className="font-medium mb-3">自定义字体</h3>
-            <Button size="sm" variant="outline" className="w-full" onClick={handleFontUpload}>
+            <Button size="sm" variant="outline" className="w-full" onClick={() => document.getElementById('fontUpload').click()}>
               <Upload className="w-4 h-4 mr-1" />
               上传自定义字体
             </Button>
+            <input id="fontUpload" type="file" onChange={handleFontUpload} accept=".ttf,.otf" className="hidden" />
             {customFonts.length > 0 && <div className="mt-3">
                 <p className="text-sm text-gray-600 mb-2">已上传字体：</p>
                 <div className="flex flex-wrap gap-2">
-                  {customFonts.map(font => <Badge key={font.value} variant="secondary">
-                      {font.label}
-                    </Badge>)}
+                  {customFonts.map(font => <Badge key={font.value} variant="secondary">{font.label}</Badge>)}
                 </div>
               </div>}
           </CardContent>

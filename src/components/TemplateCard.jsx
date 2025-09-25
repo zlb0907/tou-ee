@@ -30,20 +30,13 @@ export function TemplateCard({
   };
   const handleMakeAvatar = e => {
     e.stopPropagation();
-    // 传递模板图片信息到编辑页面
-    if (typeof wx !== 'undefined' && wx.navigateTo) {
-      wx.navigateTo({
-        url: `/pages/edit/edit?templateId=${template.id}&templateImage=${encodeURIComponent(template.image)}`
-      });
-    } else {
-      // 浏览器环境
-      window.location.href = `/edit?templateId=${template.id}&templateImage=${encodeURIComponent(template.image)}`;
-    }
+    // 直接调用onClick，传递完整的模板信息
+    onClick(template);
   };
   const tags = template?.tags || [];
   const displayTags = tags.slice(0, 2);
   const remainingTags = tags.length > 2 ? tags.length - 2 : 0;
-  return <div className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer transform transition-transform hover:scale-105" onClick={onClick}>
+  return <div className="bg-white rounded-lg shadow-sm overflow-hidden cursor-pointer transform transition-transform hover:scale-105" onClick={() => onClick(template)}>
       <div className="relative">
         <img src={template?.image || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop'} alt={template?.name || '模板'} className="w-full h-full object-cover" style={{
         aspectRatio: '1'

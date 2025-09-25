@@ -9,8 +9,6 @@ import { Button } from '@/components/ui';
 import { TemplateCard } from '@/components/TemplateCard';
 // @ts-ignore;
 import { TabBar } from '@/components/TabBar';
-// @ts-ignore;
-import { wxUtils } from '@/lib/wx-utils';
 export default function FavoritesPage(props) {
   const {
     $w,
@@ -18,38 +16,21 @@ export default function FavoritesPage(props) {
   } = props;
   const [favorites, setFavorites] = useState([]);
   const handleBack = () => {
-    if (typeof wx !== 'undefined' && wx.navigateBack) {
-      wx.navigateBack();
-    } else {
-      $w.utils.navigateBack();
-    }
+    $w.utils.navigateBack();
   };
   useEffect(() => {
-    // 微信小程序数据存储
-    const loadFavorites = async () => {
-      if (typeof wx !== 'undefined') {
-        const favs = (await wxUtils.getStorage('favorites')) || [];
-        setFavorites(favs);
-      } else {
-        const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
-        setFavorites(favs);
-      }
-    };
-    loadFavorites();
+    // 加载收藏数据
+    const favs = JSON.parse(localStorage.getItem('favorites') || '[]');
+    setFavorites(favs);
   }, []);
   const handleTemplateClick = template => {
-    if (typeof wx !== 'undefined' && wx.navigateTo) {
-      wx.navigateTo({
-        url: `/pages/edit/edit?templateId=${template.id}`
-      });
-    } else {
-      $w.utils.navigateTo({
-        pageId: 'edit',
-        params: {
-          templateId: template.id
-        }
-      });
-    }
+    $w.utils.navigateTo({
+      pageId: 'edit',
+      params: {
+        templateId: template.id,
+        templateImage: template.image
+      }
+    });
   };
   return <div style={style} className="min-h-screen bg-gray-50">
       {/* 顶部工具栏 */}
@@ -69,15 +50,9 @@ export default function FavoritesPage(props) {
             <Heart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500">暂无收藏模板</p>
             <Button variant="outline" className="mt-4" onClick={() => {
-          if (typeof wx !== 'undefined' && wx.navigateTo) {
-            wx.navigateTo({
-              url: '/pages/home/home'
-            });
-          } else {
-            $w.utils.navigateTo({
-              pageId: 'home'
-            });
-          }
+          $w.utils.navigateTo({
+            pageId: 'home'
+          });
         }}>
               去首页看看
             </Button>
@@ -89,15 +64,9 @@ export default function FavoritesPage(props) {
       {/* 底部导航 */}
       <TabBar activeTab="favorites" onTabChange={tab => {
       if (tab !== 'favorites' && tab !== 'share') {
-        if (typeof wx !== 'undefined' && wx.navigateTo) {
-          wx.navigateTo({
-            url: `/pages/${tab}/${tab}`
-          });
-        } else {
-          $w.utils.navigateTo({
-            pageId: tab
-          });
-        }
+        $w.utils.navigateTo({
+          pageId: tab
+        });
       }
     }} />
     </div>;

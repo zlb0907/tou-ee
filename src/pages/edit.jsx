@@ -5,17 +5,15 @@ import { ArrowLeft, Download } from 'lucide-react';
 // @ts-ignore;
 import { Button, Input, Slider, Select, SelectContent, SelectItem, SelectTrigger, SelectValue, Card, CardContent } from '@/components/ui';
 
-// @ts-ignore;
-import { wxUtils } from '@/lib/wx-utils';
 export default function EditPage(props) {
   const {
     $w,
     style
   } = props;
 
-  // 从URL参数获取templateId和模板数据
-  const templateId = typeof wx !== 'undefined' ? wx.getCurrentPages().pop().options.templateId : $w.page.dataset.params?.templateId || '1';
-  const templateImage = typeof wx !== 'undefined' ? wx.getCurrentPages().pop().options.templateImage : $w.page.dataset.params?.templateImage || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop';
+  // 从props参数获取templateId和模板数据
+  const templateId = $w.page.dataset.params?.templateId || '1';
+  const templateImage = $w.page.dataset.params?.templateImage || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop';
   const [textContent, setTextContent] = useState('张');
   const [fontSize, setFontSize] = useState(50);
   const [fontColor, setFontColor] = useState('#000000');
@@ -65,68 +63,28 @@ export default function EditPage(props) {
     drawCanvas();
   }, [textContent, fontSize, fontColor, fontFamily, templateImage]);
   const handleBack = () => {
-    if (typeof wx !== 'undefined' && wx.navigateBack) {
-      wx.navigateBack();
-    } else {
-      $w.utils.navigateBack();
-    }
+    $w.utils.navigateBack();
   };
   const handleSave = () => {
     if (textContent.length < minLength || textContent.length > maxLength) {
-      wxUtils.showToast({
-        title: `文字长度不符合要求：${textContent} (${minLength}-${maxLength}字)`,
-        icon: 'none'
-      });
+      alert(`文字长度不符合要求：${textContent} (${minLength}-${maxLength}字)`);
       return;
     }
 
     // 重新绘制确保Canvas内容最新
     drawCanvas();
 
-    // 微信小程序保存到相册
-    if (typeof wx !== 'undefined' && wx.canvasToTempFilePath) {
-      wx.canvasToTempFilePath({
-        canvas: canvasRef.current,
-        success: res => {
-          wx.saveImageToPhotosAlbum({
-            filePath: res.tempFilePath,
-            success: () => {
-              wxUtils.showToast({
-                title: '头像已保存到相册',
-                icon: 'success'
-              });
-            },
-            fail: () => {
-              wxUtils.showToast({
-                title: '保存失败，请重试',
-                icon: 'error'
-              });
-            }
-          });
-        },
-        fail: () => {
-          wxUtils.showToast({
-            title: '生成图片失败',
-            icon: 'error'
-          });
-        }
-      });
-    } else {
-      // 浏览器环境下载图片
-      const canvas = canvasRef.current;
-      if (canvas) {
-        const dataURL = canvas.toDataURL('image/png');
-        const link = document.createElement('a');
-        link.download = `姓氏头像_${textContent}.png`;
-        link.href = dataURL;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        wxUtils.showToast({
-          title: '头像已下载',
-          icon: 'success'
-        });
-      }
+    // 获取Canvas数据并下载
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const dataURL = canvas.toDataURL('image/png');
+      const link = document.createElement('a');
+      link.download = `姓氏头像_${textContent}.png`;
+      link.href = dataURL;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      alert('头像已下载');
     }
   };
 

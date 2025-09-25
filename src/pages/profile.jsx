@@ -5,6 +5,7 @@ import { Settings, Heart, Download, User, ChevronRight } from 'lucide-react';
 // @ts-ignore;
 import { Avatar, AvatarFallback, AvatarImage, Button, Card, CardContent } from '@/components/ui';
 
+// @ts-ignore;
 import { TabBar } from '@/components/TabBar';
 export default function ProfilePage(props) {
   const {
