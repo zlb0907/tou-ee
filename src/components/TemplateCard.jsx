@@ -58,10 +58,7 @@ export function TemplateCard({
       </div>
       
       <div className="p-2">
-        <h3 className="font-medium text-sm text-gray-900 truncate">
-          {template?.name || ''}
-        </h3>
-        <p className="text-xs text-gray-500 mt-0.5">
+        <p className="text-xs text-gray-500">
           {template?.usageCount || 0} 次使用
         </p>
         
