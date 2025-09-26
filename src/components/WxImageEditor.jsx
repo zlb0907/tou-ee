@@ -1,10 +1,13 @@
 // @ts-ignore;
 import React, { useRef, useEffect, useState } from 'react';
 // @ts-ignore;
-import { Download, RotateCcw } from 'lucide-react';
-// @ts-ignore;
 import { Button } from '@/components/ui';
+// @ts-ignore;
+import { Text } from 'lucide-react';
 
+import { View, Canvas } from '@tarojs/components';
+import { Download, RotateCcw } from '@tarojs/icons';
+import Taro from '@tarojs/taro';
 export function WxImageEditor({
   templateImage,
   textContent,
@@ -21,8 +24,7 @@ export function WxImageEditor({
     setIsGenerating(true);
     try {
       const ctx = canvas.getContext('2d');
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
+      const img = canvas.createImage();
       await new Promise((resolve, reject) => {
         img.onload = resolve;
         img.onerror = reject;
@@ -55,7 +57,10 @@ export function WxImageEditor({
       onImageGenerated(dataURL);
     } catch (error) {
       console.error('生成图片失败:', error);
-      alert('生成图片失败，请重试');
+      Taro.showToast({
+        title: '生成图片失败，请重试',
+        icon: 'none'
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -65,21 +70,21 @@ export function WxImageEditor({
       generateImage();
     }
   }, [templateImage, textContent, fontSize, fontColor, fontFamily]);
-  return <div className="relative">
-      <canvas ref={canvasRef} style={{
+  return <View className="relative">
+      <Canvas ref={canvasRef} style={{
       display: 'none'
-    }} />
+    }} canvasId="imageEditor" type="2d" />
       
-      <div className="flex gap-2 justify-center mt-4">
+      <View className="flex gap-2 justify-center mt-4">
         <Button onClick={generateImage} disabled={isGenerating} className="bg-orange-500 hover:bg-orange-600 text-white px-6">
-          {isGenerating ? <div className="flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              生成中...
-            </div> : <>
+          {isGenerating ? <View className="flex items-center gap-2">
+              <View className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <Text>生成中...</Text>
+            </View> : <>
               <RotateCcw className="w-4 h-4 mr-2" />
-              重新生成
+              <Text>重新生成</Text>
             </>}
         </Button>
-      </div>
-    </div>;
+      </View>
+    </View>;
 }

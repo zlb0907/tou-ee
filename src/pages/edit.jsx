@@ -1,21 +1,22 @@
 // @ts-ignore;
 import React, { useState, useRef, useEffect } from 'react';
 // @ts-ignore;
-import { ArrowLeft, Download, Palette, Type, Sliders } from 'lucide-react';
-// @ts-ignore;
 import { Button, Input, Slider, Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui';
 
-// @ts-ignore;
+import { View, Text, Image, Canvas } from '@tarojs/components';
+import { ArrowLeft, Download, Palette, Type, Sliders } from '@tarojs/icons';
+import Taro from '@tarojs/taro';
 import { WxImageEditor } from '@/components/WxImageEditor';
-export default function EditPage(props) {
-  const {
-    $w,
-    style
-  } = props;
-
-  // 获取参数
-  const templateId = $w.page.dataset.params?.templateId || '4';
-  const templateImage = $w.page.dataset.params?.templateImage || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop';
+// Taro页面配置
+EditPage.config = {
+  navigationBarTitleText: '编辑头像'
+};
+export default EditPage;
+export default function EditPage() {
+  // 获取路由参数
+  const router = Taro.useRouter();
+  const templateId = router.params.templateId || '4';
+  const templateImage = decodeURIComponent(router.params.templateImage || 'https://images.unsplash.com/photo-1578662996442-48f60103fc96?w=400&h=400&fit=crop');
 
   // 状态管理
   const [textContent, setTextContent] = useState('张');
@@ -53,58 +54,60 @@ export default function EditPage(props) {
 
   // 处理返回
   const handleBack = () => {
-    $w.utils.navigateBack();
+    Taro.navigateBack();
   };
 
   // 处理保存
   const handleSave = async () => {
     if (textContent.length < minLength || textContent.length > maxLength) {
-      alert(`文字长度不符合要求：${textContent} (${minLength}-${maxLength}字)`);
+      Taro.showToast({
+        title: `文字长度不符合要求：${textContent} (${minLength}-${maxLength}字)`,
+        icon: 'none'
+      });
       return;
     }
     if (!generatedImage) {
-      alert('请先生成图片');
+      Taro.showToast({
+        title: '请先生成图片',
+        icon: 'none'
+      });
       return;
     }
     setIsSaving(true);
     try {
-      // 微信小程序环境
-      if (typeof wx !== 'undefined') {
-        // 将base64转换为临时文件
-        const fs = wx.getFileSystemManager();
-        const tempFilePath = `${wx.env.USER_DATA_PATH}/temp_${Date.now()}.png`;
-        fs.writeFileSync(tempFilePath, generatedImage.replace(/^data:image\/\w+;base64,/, ''), 'base64');
+      // Taro环境保存图片
+      const fs = Taro.getFileSystemManager();
+      const tempFilePath = `${Taro.env.USER_DATA_PATH}/temp_${Date.now()}.png`;
+      fs.writeFileSync(tempFilePath, generatedImage.replace(/^data:image\/\w+;base64,/, ''), 'base64');
 
-        // 保存到相册
-        wx.saveImageToPhotosAlbum({
-          filePath: tempFilePath,
-          success: () => {
-            alert('头像已保存到相册');
-            // 清理临时文件
-            fs.unlinkSync(tempFilePath);
-          },
-          fail: err => {
-            console.error('保存失败:', err);
-            alert('保存失败，请检查权限设置');
-          },
-          complete: () => {
-            setIsSaving(false);
-          }
-        });
-      } else {
-        // 浏览器环境
-        const link = document.createElement('a');
-        link.download = `姓氏头像_${textContent}_${Date.now()}.png`;
-        link.href = generatedImage;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        alert('头像已下载');
-        setIsSaving(false);
-      }
+      // 保存到相册
+      Taro.saveImageToPhotosAlbum({
+        filePath: tempFilePath,
+        success: () => {
+          Taro.showToast({
+            title: '头像已保存到相册',
+            icon: 'success'
+          });
+          // 清理临时文件
+          fs.unlinkSync(tempFilePath);
+        },
+        fail: err => {
+          console.error('保存失败:', err);
+          Taro.showToast({
+            title: '保存失败，请检查权限设置',
+            icon: 'none'
+          });
+        },
+        complete: () => {
+          setIsSaving(false);
+        }
+      });
     } catch (error) {
       console.error('保存失败:', error);
-      alert('保存失败，请重试');
+      Taro.showToast({
+        title: '保存失败，请重试',
+        icon: 'none'
+      });
       setIsSaving(false);
     }
   };
@@ -125,71 +128,71 @@ export default function EditPage(props) {
     };
     setFontFamily(fontMap[templateId] || 'kaiti');
   }, [templateId]);
-  return <div style={style} className="min-h-screen bg-gray-50">
+  return <View className="min-h-screen bg-gray-50">
       {/* 顶部工具栏 */}
-      <div className="sticky top-0 z-10 bg-white shadow-sm">
-        <div className="flex items-center justify-between px-4 py-3">
+      <View className="sticky top-0 z-10 bg-white shadow-sm">
+        <View className="flex items-center justify-between px-4 py-3">
           <Button variant="ghost" size="icon" onClick={handleBack} className="active:scale-95">
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-lg font-medium">编辑头像</h1>
+          <Text className="text-lg font-medium">编辑头像</Text>
           <Button variant="ghost" size="icon" onClick={handleSave} disabled={isSaving} className="active:scale-95">
-            {isSaving ? <div className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /> : <Download className="w-5 h-5" />}
+            {isSaving ? <View className="w-5 h-5 border-2 border-orange-500 border-t-transparent rounded-full animate-spin" /> : <Download className="w-5 h-5" />}
           </Button>
-        </div>
-      </div>
+        </View>
+      </View>
 
       {/* 预览区域 */}
-      <div className="px-4 py-4">
-        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
-          <div className="relative" style={{
+      <View className="px-4 py-4">
+        <View className="bg-white rounded-lg shadow-sm overflow-hidden">
+          <View className="relative" style={{
           aspectRatio: '1'
         }}>
             {/* 背景图片 */}
-            <img src={templateImage} alt="模板背景" className="w-full h-full object-cover" />
+            <Image src={templateImage} className="w-full h-full object-cover" mode="aspectFill" />
             
             {/* 文字预览 */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <span className="font-bold select-none" style={{
+            <View className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <Text className="font-bold select-none" style={{
               fontSize: `${fontSize}px`,
               color: fontColor,
               fontFamily: fontFamily,
               textShadow: '2px 2px 4px rgba(0,0,0,0.3)'
             }}>
                 {textContent}
-              </span>
-            </div>
-          </div>
-        </div>
+              </Text>
+            </View>
+          </View>
+        </View>
         
         {/* 图片编辑器 */}
         <WxImageEditor templateImage={templateImage} textContent={textContent} fontSize={fontSize} fontColor={fontColor} fontFamily={fontFamily} onImageGenerated={handleImageGenerated} />
-      </div>
+      </View>
 
       {/* 编辑工具 */}
-      <div className="px-4 space-y-4 pb-20">
+      <View className="px-4 space-y-4 pb-20">
         {/* 文字输入 */}
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-2">
+        <View className="bg-white rounded-lg p-4 shadow-sm">
+          <View className="flex items-center gap-2 mb-2">
             <Type className="w-4 h-4 text-orange-500" />
-            <label className="text-sm font-medium text-gray-700">姓氏</label>
-          </div>
+            <Text className="text-sm font-medium text-gray-700">姓氏</Text>
+          </View>
           <Input type="text" value={textContent} onChange={e => setTextContent(e.target.value.slice(0, maxLength))} maxLength={maxLength} className="text-center text-lg" placeholder="输入姓氏" />
-          <p className="text-xs text-gray-500 mt-1 text-center">
+          <Text className="text-xs text-gray-500 mt-1 text-center">
             {textContent.length}/{maxLength}字
-          </p>
-        </div>
+          </Text>
+        </View>
 
         {/* 字体设置 */}
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
+        <View className="bg-white rounded-lg p-4 shadow-sm">
+          <View className="flex items-center gap-2 mb-3">
             <Palette className="w-4 h-4 text-orange-500" />
-            <label className="text-sm font-medium text-gray-700">字体设置</label>
-          </div>
+            <Text className="text-sm font-medium text-gray-700">字体设置</Text>
+          </View>
           
-          <div className="space-y-3">
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block">字体</label>
+          <View className="space-y-3">
+            <View>
+              <Text className="text-xs text-gray-600 mb-1 block">字体</Text>
               <Select value={fontFamily} onValueChange={setFontFamily}>
                 <SelectTrigger>
                   <SelectValue />
@@ -200,54 +203,54 @@ export default function EditPage(props) {
                     </SelectItem>)}
                 </SelectContent>
               </Select>
-            </div>
+            </View>
             
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block">
+            <View>
+              <Text className="text-xs text-gray-600 mb-1 block">
                 字体大小: {fontSize}px
-              </label>
+              </Text>
               <Slider value={[fontSize]} onValueChange={([value]) => setFontSize(value)} min={20} max={100} step={1} className="w-full" />
-            </div>
+            </View>
             
-            <div>
-              <label className="text-xs text-gray-600 mb-1 block">字体颜色</label>
-              <div className="grid grid-cols-5 gap-2">
-                {colorOptions.map(color => <button key={color} className="w-8 h-8 rounded-full border-2 transition-all duration-200 active:scale-95" style={{
+            <View>
+              <Text className="text-xs text-gray-600 mb-1 block">字体颜色</Text>
+              <View className="grid grid-cols-5 gap-2">
+                {colorOptions.map(color => <View key={color} className="w-8 h-8 rounded-full border-2 transition-all duration-200 active:scale-95" style={{
                 backgroundColor: color,
                 borderColor: fontColor === color ? color : 'transparent',
                 boxShadow: fontColor === color ? `0 0 0 2px white, 0 0 0 4px ${color}` : 'none'
               }} onClick={() => setFontColor(color)} />)}
-              </div>
-            </div>
-          </div>
-        </div>
+              </View>
+            </View>
+          </View>
+        </View>
 
         {/* 字数限制 */}
-        <div className="bg-white rounded-lg p-4 shadow-sm">
-          <div className="flex items-center gap-2 mb-3">
+        <View className="bg-white rounded-lg p-4 shadow-sm">
+          <View className="flex items-center gap-2 mb-3">
             <Sliders className="w-4 h-4 text-orange-500" />
-            <label className="text-sm font-medium text-gray-700">字数限制</label>
-          </div>
+            <Text className="text-sm font-medium text-gray-700">字数限制</Text>
+          </View>
           
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-gray-600">最小字数</label>
+          <View className="grid grid-cols-2 gap-3">
+            <View>
+              <Text className="text-xs text-gray-600">最小字数</Text>
               <Input type="number" value={minLength} onChange={e => setMinLength(parseInt(e.target.value) || 1)} min={1} max={10} className="h-9" />
-            </div>
-            <div>
-              <label className="text-xs text-gray-600">最大字数</label>
+            </View>
+            <View>
+              <Text className="text-xs text-gray-600">最大字数</Text>
               <Input type="number" value={maxLength} onChange={e => setMaxLength(parseInt(e.target.value) || 4)} min={1} max={10} className="h-9" />
-            </div>
-          </div>
-        </div>
+            </View>
+          </View>
+        </View>
 
         {/* 保存按钮 */}
         <Button className="w-full bg-orange-500 hover:bg-orange-600 text-white py-3 rounded-full transition-all duration-200 active:scale-95" onClick={handleSave} disabled={isSaving}>
-          {isSaving ? <div className="flex items-center justify-center gap-2">
-              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-              保存中...
-            </div> : '保存头像'}
+          {isSaving ? <View className="flex items-center justify-center gap-2">
+              <View className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+              <Text>保存中...</Text>
+            </View> : '保存头像'}
         </Button>
-      </div>
-    </div>;
+      </View>
+    </View>;
 }
